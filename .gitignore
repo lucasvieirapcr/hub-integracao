@@ -1,0 +1,28 @@
+# Segredos: nunca versionar
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Dados gerados localmente (bancos SQLite das APIs, arquivos do fornecedor, gabarito do caos)
+data/
+.cache/
+
+# Editores e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
