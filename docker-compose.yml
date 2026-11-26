@@ -1,0 +1,110 @@
+# Oracle, SFTP e APIs simuladas. Variáveis no .env (make env).
+
+name: hub-de-integracao
+
+x-api: &api
+  build:
+    context: .
+    dockerfile: source_systems/Dockerfile
+  image: hub-de-integracao/source-systems:local
+  restart: unless-stopped
+
+x-api-env: &api-env
+  SIM_ADMIN_TOKEN: ${SIM_ADMIN_TOKEN:?defina SIM_ADMIN_TOKEN no .env (make env)}
+  CHAOS_CONFIG_PATH: /app/chaos/chaos.yaml
+  CHAOS_LEDGER_DIR: /app/data/chaos
+
+services:
+  oracle:
+    # 26ai Free (release 23.26), variante full. Ver docs/adr/0001-imagem-oracle.md.
+    image: gvenzl/oracle-free:23.26.4-full
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?defina ORACLE_PASSWORD no .env (make env)}
+      ERP_DB_PASSWORD: ${ERP_DB_PASSWORD:?defina ERP_DB_PASSWORD no .env}
+      HUB_DB_PASSWORD: ${HUB_DB_PASSWORD:?defina HUB_DB_PASSWORD no .env}
+      UT3_PASSWORD: ${UT3_PASSWORD:?defina UT3_PASSWORD no .env}
+    ports:
+      - "${ORACLE_PORT:-1521}:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./database:/opt/hub/database:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    restart: unless-stopped
+
+  sftp:
+    image: atmoz/sftp:alpine
+    command: "${SFTP_USER:-fornecedor}:${SFTP_PASSWORD:?defina SFTP_PASSWORD no .env}:1001:100:inbox"
+    ports:
+      - "${SFTP_PORT:-2222}:22"
+    volumes:
+      - sftp-data:/home/${SFTP_USER:-fornecedor}/inbox
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 22"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  b2b-store:
+    <<: *api
+    command: ["uvicorn", "--factory", "source_systems.b2b_store.app:create_app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *api-env
+      B2B_API_TOKEN: ${B2B_API_TOKEN:?defina B2B_API_TOKEN no .env}
+      B2B_DB_PATH: /app/db/b2b_store.sqlite3
+      B2B_RATE_LIMIT_PER_MINUTE: ${B2B_RATE_LIMIT_PER_MINUTE:-120}
+      B2B_RATE_LIMIT_BURST: ${B2B_RATE_LIMIT_BURST:-20}
+    ports:
+      - "8001:8000"
+    volumes:
+      - b2b-data:/app/db
+      - ./simulator/chaos.yaml:/app/chaos/chaos.yaml:ro
+      - ./data/chaos:/app/data/chaos
+
+  crm:
+    <<: *api
+    command: ["uvicorn", "--factory", "source_systems.crm.app:create_app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *api-env
+      CRM_API_TOKEN: ${CRM_API_TOKEN:?defina CRM_API_TOKEN no .env}
+      CRM_DB_PATH: /app/db/crm.sqlite3
+      CRM_RATE_LIMIT_PER_MINUTE: ${CRM_RATE_LIMIT_PER_MINUTE:-60}
+      CRM_RATE_LIMIT_BURST: ${CRM_RATE_LIMIT_BURST:-10}
+      CRM_WEBHOOK_SECRET: ${CRM_WEBHOOK_SECRET:?defina CRM_WEBHOOK_SECRET no .env}
+      CRM_WEBHOOK_URL: ${CRM_WEBHOOK_URL:-}
+    ports:
+      - "8002:8000"
+    volumes:
+      - crm-data:/app/db
+      - ./simulator/chaos.yaml:/app/chaos/chaos.yaml:ro
+      - ./data/chaos:/app/data/chaos
+
+  payments:
+    <<: *api
+    command: ["uvicorn", "--factory", "source_systems.payments.app:create_app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      <<: *api-env
+      PAYMENTS_API_TOKEN: ${PAYMENTS_API_TOKEN:?defina PAYMENTS_API_TOKEN no .env}
+      PAYMENTS_DB_PATH: /app/db/payments.sqlite3
+      PAYMENTS_RATE_LIMIT_PER_MINUTE: ${PAYMENTS_RATE_LIMIT_PER_MINUTE:-60}
+      PAYMENTS_RATE_LIMIT_BURST: ${PAYMENTS_RATE_LIMIT_BURST:-10}
+      PAYMENTS_WEBHOOK_SECRET: ${PAYMENTS_WEBHOOK_SECRET:?defina PAYMENTS_WEBHOOK_SECRET no .env}
+      PAYMENTS_WEBHOOK_URL: ${PAYMENTS_WEBHOOK_URL:-}
+    ports:
+      - "8003:8000"
+    volumes:
+      - payments-data:/app/db
+      - ./simulator/chaos.yaml:/app/chaos/chaos.yaml:ro
+      - ./data/chaos:/app/data/chaos
+
+volumes:
+  oracle-data:
+  sftp-data:
+  b2b-data:
+  crm-data:
+  payments-data:
