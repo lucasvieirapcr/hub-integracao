@@ -1,0 +1,37 @@
+# Perfil ativo: SIM_PROFILE (padrão: dev).
+
+seed: 20261101
+
+history_end: 2026-10-31
+
+profiles:
+  test:
+    history_start: 2026-10-01
+    customers: 40
+    products: 30
+    warehouses: 2
+    erp_orders_per_day: 10
+    b2b_orders_per_day: 5
+    items_per_order: [1, 4]
+    crm_events_per_day: 5
+
+  dev:
+    history_start: 2025-11-01
+    customers: 800
+    products: 400
+    warehouses: 3
+    erp_orders_per_day: 100
+    b2b_orders_per_day: 40
+    items_per_order: [1, 7]
+    crm_events_per_day: 30
+
+  # ~2,3 milhões de pedidos no ERP
+  benchmark:
+    history_start: 2024-11-01
+    customers: 20000
+    products: 2400  # o catálogo sintético comporta até ~2.400 combinações
+    warehouses: 5
+    erp_orders_per_day: 3000
+    b2b_orders_per_day: 1000
+    items_per_order: [1, 7]
+    crm_events_per_day: 300

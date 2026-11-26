@@ -1,0 +1,30 @@
+# Falhas injetadas (desligadas por padrão). Cada injeção é registrada em
+# CHAOS_LEDGER_DIR/<sistema>.jsonl. As APIs leem o arquivo ao iniciar.
+
+seed: 777
+
+b2b_store:
+  latency: { enabled: false, probability: 0.10, min_ms: 500, max_ms: 3000 }
+  outage: { enabled: false, probability: 0.02 }
+
+crm:
+  latency: { enabled: false, probability: 0.10, min_ms: 200, max_ms: 1500 }
+  outage: { enabled: false, probability: 0.02 }
+  duplicate_events: { enabled: false, probability: 0.10 }
+  out_of_order: { enabled: false, probability: 0.50 }
+
+payments:
+  latency: { enabled: false, probability: 0.10, min_ms: 200, max_ms: 1500 }
+  outage: { enabled: false, probability: 0.02 }
+  duplicate_events: { enabled: false, probability: 0.10 }
+  out_of_order: { enabled: false, probability: 0.50 }
+
+supplier_file:
+  late: { enabled: false, probability: 0.10 }
+  renamed_column: { enabled: false, probability: 0.10 }
+  wrong_encoding: { enabled: false, probability: 0.10 }
+  invalid_rows: { enabled: false, probability: 0.30, max_rows: 5 }
+
+erp:
+  # Pedido pago na loja B2B que não chega ao ERP (gera divergência na conciliação).
+  b2b_replication_gap: { enabled: false, probability: 0.01 }

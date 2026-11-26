@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hub-de-integracao"
+version = "0.1.0"
+description = "Hub de integração de dados da Distribuidora Exemplo (projeto de portfólio, dados fictícios)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+authors = [{ name = "Lucas Vieira" }]
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.32,<1",
+    "httpx>=0.28,<1",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "pyyaml>=6.0,<7",
+    "oracledb>=2.5,<27",
+    "paramiko>=3.5,<6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<10",
+    "pytest-cov>=6,<8",
+    "ruff>=0.8,<1",
+    "mypy>=1.13,<2",
+    "types-PyYAML>=6.0",
+    "types-paramiko>=3.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["simulator*", "source_systems*"]
+
+[tool.setuptools.package-data]
+simulator = ["*.yaml"]
+
+# --- Lint e formatação -------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".cache", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "C4", "RUF", "PTH", "S"]
+ignore = [
+    "S311", # random é intencional: dados sintéticos com seed fixa, não criptografia
+    "E501", # o ruff format cuida do comprimento; SQL e mensagens longas ficam legíveis inteiros
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"] # assert e senhas falsas são normais em testes
+
+# --- Tipagem -------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["^\\.cache/", "^data/"]
+
+[[tool.mypy.overrides]]
+module = ["oracledb.*"]
+ignore_missing_imports = true
+
+# --- Testes --------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: precisa dos containers (Oracle, APIs, SFTP) rodando; pulado automaticamente se não estiverem",
+]
